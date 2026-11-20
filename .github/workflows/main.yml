@@ -1,0 +1,50 @@
+name: Build Mac
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  buildMac:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: 4.2.5
+
+      - name: Install Haxelib
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install hxcpp > /dev/null
+          haxelib install lime
+          haxelib install openfl
+          haxelib --never install flixel
+          haxelib run lime setup flixel
+          haxelib run lime setup -y
+          haxelib install flixel-tools
+          haxelib install flixel-ui
+          haxelib install flixel-addons
+          haxelib git linc_luajit https://github.com
+          haxelib git hscript-improved https://github.com
+          haxelib git discord_rpc https://github.com
+          haxelib git hxvm-luajit https://github.com
+          haxelib git hxCodec https://github.com
+          haxelib git flixel-screenshot-plugin https://github.com
+          haxelib install hxcpp-debug-server
+          haxelib list
+
+      - name: Create Version Tag
+        run: echo "${{github.run_id}}" > VERSION
+
+      - name: Compile
+        run: haxelib run lime build mac --app-version="4.0.0-${{ github.run_id}}"
+
+      - name: Publish Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macBuild
+          path: export/release/macos/bin
